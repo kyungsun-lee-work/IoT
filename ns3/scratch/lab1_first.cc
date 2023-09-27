@@ -40,40 +40,53 @@ main(int argc, char* argv[])
     LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
     LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
 
+    // Create 2 nodes
     NodeContainer nodes;
     nodes.Create(2);
 
+    // Setting p2p link apptribute: DataRate 10Mbps, Delay 2ms.
     PointToPointHelper pointToPoint;
     pointToPoint.SetDeviceAttribute("DataRate", StringValue("10Mbps"));
     pointToPoint.SetChannelAttribute("Delay", StringValue("2ms"));
 
+    // Install p2p link on the nodes created above
     NetDeviceContainer devices;
     devices = pointToPoint.Install(nodes);
 
+    // Install internet stack to use interet protocol
     InternetStackHelper stack;
     stack.Install(nodes);
 
+    // Set Ip address to the nodes
     Ipv4AddressHelper address;
     address.SetBase("192.168.2.0", "255.255.255.0");
-
     Ipv4InterfaceContainer interfaces = address.Assign(devices);
 
+    // Set Udp Echo server listening port number 63
     UdpEchoServerHelper echoServer(63);
 
+    // Start udp server at 1s and stop at 10s
     ApplicationContainer serverApps = echoServer.Install(nodes.Get(1));
     serverApps.Start(Seconds(1.0));
     serverApps.Stop(Seconds(10.0));
 
+    // Set Udp Echo client to send packet to the server ip with port 63
+    // Set the client send pack up to 1 and 256 mb.
     UdpEchoClientHelper echoClient(interfaces.GetAddress(1), 63);
     echoClient.SetAttribute("MaxPackets", UintegerValue(1));
     echoClient.SetAttribute("Interval", TimeValue(Seconds(1.0)));
     echoClient.SetAttribute("PacketSize", UintegerValue(256));
 
+    // Set client start at 2s and stop at 10s
     ApplicationContainer clientApps = echoClient.Install(nodes.Get(0));
     clientApps.Start(Seconds(2.0));
     clientApps.Stop(Seconds(10.0));
 
+    // Enable capture packes on every node, pcap file name should start with
+    // "lab1_first_nodeNumber_deviceNumber.pcap".
     pointToPoint.EnablePcapAll("lab1_first");
+
+    
     Simulator::Run();
     Simulator::Destroy();
     return 0;
